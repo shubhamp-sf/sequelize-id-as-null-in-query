@@ -5,6 +5,7 @@ const config = {
   name: 'pg',
   connector: 'postgresql',
   url: 'postgres://postgres:super-secret@localhost:5007/postgres',
+  schema: 'main',
 };
 
 // Observe application's life cycle to disconnect the datasource when

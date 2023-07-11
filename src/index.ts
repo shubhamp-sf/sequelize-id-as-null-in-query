@@ -1,4 +1,10 @@
-import {ApplicationConfig, SequelizeIdAsNullInQueryApplication} from './application';
+import * as dotenv from 'dotenv';
+dotenv.config();
+// prettier-ignore
+import {
+  ApplicationConfig,
+  SequelizeIdAsNullInQueryApplication,
+} from './application';
 
 export * from './application';
 
