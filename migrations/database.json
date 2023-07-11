@@ -1,0 +1,4 @@
+{
+  "defaultEnv": "pg",
+  "pg": "postgres://postgres:super-secret@localhost:5007/postgres"
+}
