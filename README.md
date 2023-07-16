@@ -1,75 +1,44 @@
 # sequelize-id-as-null-in-query
 
-This application is generated using [LoopBack 4 CLI](https://loopback.io/doc/en/lb4/Command-line-interface.html) with the
-[initial project layout](https://loopback.io/doc/en/lb4/Loopback-application-layout.html).
+This issue is mostly out of the extension’s control due to the `.sync()` code being fully handled by sequelize.
+The main problem is the sqlite dialect in sequelize which doesn't handles autoincrements for strings yet (related issue: https://github.com/sequelize/sequelize/issues/969)
 
-## Install dependencies
+Found two solutions of it:
+Specifying the generated prop based on test environment like this in the model's property definition:
+```
+generated: typeof global.it === 'function' ? false : true,
+```
+(or using [detect-mocha](https://www.npmjs.com/package/detect-mocha))
+But using this will require this to be changed in all models.
 
-By default, dependencies were installed when this application was generated.
-Whenever dependencies in `package.json` are changed, run the following command:
-
-```sh
-npm install
+2. Specifying a beforeDefine hook in the test-helper file like this:
+```ts
+app.bind(`datasources.config.${PgDataSource.dataSourceName}`).to({
+    name: 'pg',
+    connector: 'sqlite3',
+    database: 'test',
+    file: ':memory:',
+    sequelizeOptions: {
+      hooks: {
+        beforeDefine: (attributes, _options) => {
+          for (const key in attributes) {
+            const propDefinition = attributes[key] as AnyObject;
+            if (
+              propDefinition.autoIncrement === true &&
+              propDefinition.type === DataTypes.STRING
+            ) {
+              Object.assign(attributes[key], {
+                propDefinition,
+                autoIncrement: false,
+              });
+            }
+          }
+        },
+      },
+    },
+  } as SequelizeDataSourceConfig);
 ```
 
-To only install resolved dependencies in `package-lock.json`:
-
-```sh
-npm ci
-```
-
-## Run the application
-
-```sh
-npm start
-```
-
-You can also run `node .` to skip the build step.
-
-Open http://127.0.0.1:3000 in your browser.
-
-## Rebuild the project
-
-To incrementally build the project:
-
-```sh
-npm run build
-```
-
-To force a full build by cleaning up cached artifacts:
-
-```sh
-npm run rebuild
-```
-
-## Fix code style and formatting issues
-
-```sh
-npm run lint
-```
-
-To automatically fix such issues:
-
-```sh
-npm run lint:fix
-```
-
-## Other useful commands
-
-- `npm run migrate`: Migrate database schemas for models
-- `npm run openapi-spec`: Generate OpenAPI spec into a file
-- `npm run docker:build`: Build a Docker image for this application
-- `npm run docker:run`: Run this application inside a Docker container
-
-## Tests
-
-```sh
-npm test
-```
-
-## What's next
-
-Please check out [LoopBack 4 documentation](https://loopback.io/doc/en/lb4/) to
-understand how you can continue to add features to this application.
-
-[![LoopBack](https://github.com/loopbackio/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png)](http://loopback.io/)
+Both solves the issue.
+Here’s an example implementation:
+https://github.com/shubhamp-sf/sequelize-id-as-null-in-query/blob/main/src/__tests__/acceptance/test-helper.ts#L25:L48
